@@ -15,29 +15,22 @@ namespace WebCrawler.Crawling
 {
     public class PageParser
     {
-        public static TransformBlock<LoadedSite, IHtmlDocument> GetBlock(IServiceScopeFactory scopeFactory)
+        public static TransformBlock<Page, IHtmlDocument> GetBlock(IServiceScopeFactory scopeFactory)
         {
-            return new TransformBlock<LoadedSite, IHtmlDocument>(async document =>
+            return new TransformBlock<Page, IHtmlDocument>(async page =>
             {
                 Log.Information("Site parser");
 
                 var scope = scopeFactory.CreateScope();
                 var dbContext = (DbContext)scope.ServiceProvider.GetService(typeof(DbContext));
-                var pages = dbContext.Page.ToList();
-                await dbContext.Page.AddAsync(new Page()
-                {
-                    Url = document.Url,
-                    AccessedTime = DateTime.Now,
-                    HtmlContent = document.DocumentSource,
-                    HttpStatusCode = document.ResponseCode,
-                    PageTypeCode = "HTML",
-                    SiteId = dbContext.Site.Where(s => s.Domain == document.Domain).FirstOrDefault()?.Id
-                });
+                page.PageTypeCode = "HTML";
+                page.SiteId = dbContext.Site.Where(s => s.Domain == page.Domain).FirstOrDefault()?.Id;
+                dbContext.Page.Update(page);
                 await dbContext.SaveChangesAsync();
                 scope.Dispose();
 
                 var parser = new HtmlParser();
-                var doc = await parser.ParseDocumentAsync(document.DocumentSource);
+                var doc = await parser.ParseDocumentAsync(page.HtmlContent);
 
                 return doc;
             });

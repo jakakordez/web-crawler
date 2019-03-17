@@ -17,6 +17,8 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Remote;
 using Serilog;
+using WebCrawler.Models;
+using Page = WebCrawler.Models.Page;
 
 namespace WebCrawler.Crawling
 {
@@ -32,30 +34,37 @@ namespace WebCrawler.Crawling
             
         }
 
-        public static TransformBlock<Uri, LoadedSite> GetBlock()
+        public static TransformBlock<Page, Page> GetBlock()
         {
-            return new TransformBlock<Uri, LoadedSite>(url =>
+            return new TransformBlock<Page, Page>(page =>
             {
-                Log.Information("Site loader {0}", url);
-
-                var browser = BrowserPool.Get();  
-                browser.Navigate().GoToUrl(url);
-                var logs = browser.Manage().Logs.GetLog("performance");
-                var responseCode = logs
-                    .Select(log => JObject.Parse(log.Message)["message"])
-                    .Where(o => o["method"]?.ToString() == "Network.responseReceived")
-                    .Select(o => o["params"]["response"]["status"])
-                    .First().ToString();
-
-                var loadedSite = new LoadedSite()
+                Log.Information("Site loader {0}", page.Url);
+                ChromeDriver browser = null;
+                try
                 {
-                    DocumentSource = browser.PageSource,
-                    ResponseCode = int.Parse(responseCode),
-                    Url = url.ToString()
-                };
+                    browser = BrowserPool.Get();
+                    browser.Navigate().GoToUrl(page.Url);
+                    var logs = browser.Manage().Logs.GetLog("performance");
+                    var responseCode = logs
+                        .Select(log => JObject.Parse(log.Message)["message"])
+                        .Where(o => o["method"]?.ToString() == "Network.responseReceived")
+                        .Select(o => o["params"]["response"]["status"])
+                        .First().ToString();
 
-                BrowserPool.Return(browser);
-                return loadedSite;
+                    page.AccessedTime = DateTime.Now;
+                    page.HtmlContent = browser.PageSource;
+                    page.HttpStatusCode = int.Parse(responseCode);
+                }
+                catch(Exception e)
+                {
+                    Log.Error(e, "Chrome error");
+                }
+                finally
+                {
+                    if(browser != null) BrowserPool.Return(browser);
+                }
+
+                return page;
             });
         }
     }

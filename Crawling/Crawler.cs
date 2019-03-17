@@ -12,39 +12,14 @@ namespace WebCrawler.Crawling
 {
     public static class Crawler
     {
-        public static IWebHost RunCrawler(this IWebHost webHost)
-        {
-            /*var dbContext = (DbContext)webHost.Services.GetService(typeof(DbContext));
 
-            var siteLoader = SiteLoader.GetBlock();
-            var frontier = Frontier.GetBlock();
-            var siteParser = SiteParser.GetBlock(dbContext);
-            var linkScraper = LinkScraper.GetBlock(dbContext);
-            var imageScraper = ImageScraper.GetBlock(dbContext);
-            var domBroadcast = new BroadcastBlock<IHtmlDocument>(d => d, 
-                new DataflowBlockOptions());
-
-            frontier.LinkTo(siteLoader, new DataflowLinkOptions());
-            siteLoader.LinkTo(siteParser, new DataflowLinkOptions());
-            siteParser.LinkTo(domBroadcast, new DataflowLinkOptions());
-            domBroadcast.LinkTo(linkScraper, new DataflowLinkOptions());
-            domBroadcast.LinkTo(imageScraper, new DataflowLinkOptions());
-
-            frontier.Post(new Uri("http://evem.gov.si"));
-            frontier.Post(new Uri("http://e-uprava.gov.si"));
-            frontier.Post(new Uri("http://podatki.gov.si"));
-            frontier.Post(new Uri("http://e-prostor.gov.si"));
-            */
-            return webHost;
-        }
-
-        public static void StartCrawler(IServiceScopeFactory scopeFactory)
+        public static async Task StartCrawler(IServiceScopeFactory scopeFactory)
         {
             var frontier = Frontier.GetBlock();
             var siteLoader = SiteLoader.GetBlock(scopeFactory, frontier);
             var pageLoader = PageLoader.GetBlock();
             var pageParser = PageParser.GetBlock(scopeFactory);
-            var linkScraper = LinkScraper.GetBlock(scopeFactory);
+            var linkScraper = LinkScraper.GetBlock(scopeFactory, frontier);
             var imageScraper = ImageScraper.GetBlock(scopeFactory);
             var domBroadcast = new BroadcastBlock<IHtmlDocument>(d => d,
                 new DataflowBlockOptions());
@@ -56,10 +31,38 @@ namespace WebCrawler.Crawling
             domBroadcast.LinkTo(linkScraper, new DataflowLinkOptions());
             domBroadcast.LinkTo(imageScraper, new DataflowLinkOptions());
 
-            frontier.Post(new Uri("http://evem.gov.si"));
-            frontier.Post(new Uri("http://e-uprava.gov.si"));
-            frontier.Post(new Uri("http://podatki.gov.si"));
-            frontier.Post(new Uri("http://e-prostor.gov.si"));
+            var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetService<DbContext>();
+            await PostPage(new Uri("http://evem.gov.si"), dbContext, frontier);
+            await PostPage(new Uri("http://e-uprava.gov.si"), dbContext, frontier);
+            await PostPage(new Uri("http://podatki.gov.si"), dbContext, frontier);
+            await PostPage(new Uri("http://e-prostor.gov.si"), dbContext, frontier);
+            scope.Dispose();
+        }
+
+        public static async Task<Page> PostPage(Uri uri, DbContext dbContext, BufferBlock<Page> frontier)
+        {
+            var page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+
+            if(page == null)
+            {
+                page = new Page()
+                {
+                    Url = uri.ToString()
+                };
+                try
+                {
+                    await dbContext.Page.AddAsync(page);
+                    await dbContext.SaveChangesAsync();
+                    frontier.Post(page);
+                }
+                catch
+                {
+                    page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+                }
+            }
+
+            return page;
         }
     }
 }

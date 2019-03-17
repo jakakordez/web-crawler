@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 
 namespace WebCrawler.Models
 {
@@ -27,5 +29,9 @@ namespace WebCrawler.Models
         public ICollection<Link> LinkFromPageNavigation { get; set; }
         public ICollection<Link> LinkToPageNavigation { get; set; }
         public ICollection<PageData> PageData { get; set; }
+
+        [Editable(false)]
+        public string Domain =>
+                new Regex(@"https?:\/\/(.+?)\/").Match(Url.ToString()).Groups[1].Value;
     }
 }

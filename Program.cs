@@ -29,7 +29,7 @@ namespace WebCrawler
             {
                 Log.Information("Starting web host");
                 CreateWebHostBuilder(args)
-                    .Build().RunCrawler().Run();
+                    .Build().Run();
             }
             catch (Exception ex)
             {

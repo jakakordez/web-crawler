@@ -16,12 +16,25 @@ namespace WebCrawler.Crawling
 {
     public class LinkScraper
     {
-        public static ActionBlock<IHtmlDocument> GetBlock(IServiceScopeFactory scopeFactory)
+        public static ActionBlock<IHtmlDocument> GetBlock(IServiceScopeFactory scopeFactory, BufferBlock<Page> frontier)
         {
             return new ActionBlock<IHtmlDocument>(async document =>
             {
                 var links = document.QuerySelectorAll("a");
                 Log.Information("Link scraper found {0} links", links.Length);
+
+                var scope = scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetService<DbContext>();
+                foreach (var link in links)
+                {
+                    try
+                    {
+                        var url = link.GetAttribute("href");
+                        await Crawler.PostPage(new Uri(url), dbContext, frontier);
+                    }
+                    catch { }
+                }
+                scope.Dispose();
             });
         }
     }

@@ -15,11 +15,11 @@ namespace WebCrawler.Crawling
 {
     public class SiteLoader
     {
-        public static TransformBlock<Uri, Uri> GetBlock(IServiceScopeFactory scopeFactory, BufferBlock<Uri> frontier)
+        public static TransformBlock<Page, Page> GetBlock(IServiceScopeFactory scopeFactory, BufferBlock<Page> frontier)
         {
-            return new TransformBlock<Uri, Uri>(async uri => {
+            return new TransformBlock<Page, Page>(async page => {
                 var domainRegex = new Regex(@"https?:\/\/(.+?)\/");
-                var domain = domainRegex.Match(uri.ToString()).Groups[1].Value;
+                var domain = domainRegex.Match(page.Url.ToString()).Groups[1].Value;
 
                 var scope = scopeFactory.CreateScope();
                 var dbContext = (Models.DbContext)scope.ServiceProvider.GetService(typeof(Models.DbContext));
@@ -41,13 +41,6 @@ namespace WebCrawler.Crawling
                             if (response.IsSuccessStatusCode)
                             {
                                 sitemapContent = await response.Content.ReadAsStringAsync();
-
-                                var sitemap = new SitemapParser().Parse(sitemapContent);
-
-                                foreach (var item in sitemap.Items)
-                                {
-                                    frontier.Post(item.Location);
-                                }
                             }
                         }
                     }
@@ -59,10 +52,20 @@ namespace WebCrawler.Crawling
                         SitemapContent = sitemapContent
                     });
                     await dbContext.SaveChangesAsync();
+
+                    if(sitemapContent != null)
+                    {
+                        var sitemap = new SitemapParser().Parse(sitemapContent);
+
+                        foreach (var item in sitemap.Items)
+                        {
+                            await Crawler.PostPage(item.Location, dbContext, frontier);
+                        }
+                    }
                 }
                 scope.Dispose();
 
-                return uri;
+                return page;
             });
         }
     }
