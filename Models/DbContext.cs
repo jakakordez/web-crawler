@@ -27,7 +27,7 @@ namespace WebCrawler.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseNpgsql("Host=192.168.99.100;Database=crawler;Username=postgres;Password=postgres");
+                optionsBuilder.UseNpgsql("");
             }
         }
 

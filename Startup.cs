@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,11 +28,15 @@ namespace WebCrawler
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddEntityFrameworkNpgsql().AddDbContext<WebCrawler.Models.DbContext>(options =>
+                options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env,
+            IApplicationLifetime lifetime, IServiceScopeFactory scopeFactory)
         {
             /*lifetime.ApplicationStarted.Register(() =>
             {
@@ -52,6 +57,8 @@ namespace WebCrawler
                 });
             });*/
 
+            Crawler.StartCrawler(scopeFactory);
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -63,13 +70,6 @@ namespace WebCrawler
 
             app.UseHttpsRedirection();
             app.UseMvc();
-        }
-
-        async Task DoWorkAsync(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested)
-            {
-            }
         }
     }
 }
