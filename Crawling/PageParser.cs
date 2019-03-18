@@ -15,9 +15,9 @@ namespace WebCrawler.Crawling
 {
     public class PageParser
     {
-        public static TransformBlock<Page, IHtmlDocument> GetBlock(IServiceScopeFactory scopeFactory)
+        public static TransformBlock<Page, Page> GetBlock(IServiceScopeFactory scopeFactory)
         {
-            return new TransformBlock<Page, IHtmlDocument>(async page =>
+            return new TransformBlock<Page, Page>(async page =>
             {
                 Log.Information("Site parser");
 
@@ -31,8 +31,8 @@ namespace WebCrawler.Crawling
 
                 var parser = new HtmlParser();
                 var doc = await parser.ParseDocumentAsync(page.HtmlContent);
-
-                return doc;
+                page.document = doc;
+                return page;
             });
         }
     }

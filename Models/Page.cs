@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AngleSharp.Html.Dom;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
@@ -33,5 +34,8 @@ namespace WebCrawler.Models
         [Editable(false)]
         public string Domain =>
                 new Regex(@"https?:\/\/(.+?)\/").Match(Url.ToString()).Groups[1].Value;
+
+        [Editable(false)]
+        public IHtmlDocument document;
     }
 }

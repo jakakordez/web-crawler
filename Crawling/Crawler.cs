@@ -21,7 +21,7 @@ namespace WebCrawler.Crawling
             var pageParser = PageParser.GetBlock(scopeFactory);
             var linkScraper = LinkScraper.GetBlock(scopeFactory, frontier);
             var imageScraper = ImageScraper.GetBlock(scopeFactory);
-            var domBroadcast = new BroadcastBlock<IHtmlDocument>(d => d,
+            var domBroadcast = new BroadcastBlock<Page>(d => d,
                 new DataflowBlockOptions());
 
             frontier.LinkTo(siteLoader, new DataflowLinkOptions());
@@ -42,6 +42,8 @@ namespace WebCrawler.Crawling
 
         public static async Task<Page> PostPage(Uri uri, DbContext dbContext, BufferBlock<Page> frontier)
         {
+            uri = new Uri(uri.ToString().Split('?')[0]);
+
             var page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
 
             if(page == null)
