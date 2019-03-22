@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using WebCrawler.Models;
@@ -43,6 +44,9 @@ namespace WebCrawler.Crawling
         public static async Task<Page> PostPage(Uri uri, DbContext dbContext, BufferBlock<Page> frontier)
         {
             uri = new Uri(uri.ToString().Split('?')[0]);
+
+            var govsiRegex = new Regex(@"https?:\/\/[^\/]+gov\.si");
+            if (!govsiRegex.IsMatch(uri.ToString())) return null;
 
             var page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
 
