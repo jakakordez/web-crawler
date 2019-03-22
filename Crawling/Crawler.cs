@@ -11,7 +11,7 @@ using WebCrawler.Models;
 
 namespace WebCrawler.Crawling
 {
-    public static class Crawler
+    public static partial class Crawler
     {
 
         public static async Task StartCrawler(IServiceScopeFactory scopeFactory)
@@ -22,8 +22,10 @@ namespace WebCrawler.Crawling
             var pageParser = PageParser.GetBlock(scopeFactory);
             var linkScraper = LinkScraper.GetBlock(scopeFactory, frontier);
             var imageScraper = ImageScraper.GetBlock(scopeFactory);
+            var imageLoader = ImageLoader.GetBlock(scopeFactory);
             var domBroadcast = new BroadcastBlock<Page>(d => d,
                 new DataflowBlockOptions());
+            var imageSelect = CreateSelectManyBlock<Image>();
 
             frontier.LinkTo(siteLoader, new DataflowLinkOptions());
             siteLoader.LinkTo(pageLoader, new DataflowLinkOptions());
@@ -31,6 +33,8 @@ namespace WebCrawler.Crawling
             pageParser.LinkTo(domBroadcast, new DataflowLinkOptions());
             domBroadcast.LinkTo(linkScraper, new DataflowLinkOptions());
             domBroadcast.LinkTo(imageScraper, new DataflowLinkOptions());
+            imageScraper.LinkTo(imageSelect, new DataflowLinkOptions());
+            imageSelect.LinkTo(imageLoader, new DataflowLinkOptions());
 
             var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetService<DbContext>();

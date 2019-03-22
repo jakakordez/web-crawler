@@ -24,15 +24,6 @@ namespace WebCrawler.Crawling
 {
     public class PageLoader
     {
-        public struct LoadedSite
-        {
-            public string DocumentSource;
-            public int ResponseCode;
-            public string Url;
-            public string Domain => 
-                new Regex(@"https?:\/\/(.+?)\/").Match(Url.ToString()).Groups[1].Value;
-            
-        }
 
         public static TransformBlock<Page, Page> GetBlock()
         {
