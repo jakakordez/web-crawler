@@ -49,7 +49,7 @@ namespace WebCrawler.Crawling
 
         public static async Task<Page> PostPage(Uri uri, DbContext dbContext, BufferBlock<Page> frontier)
         {
-            uri = new Uri(uri.ToString().Replace("www.", "").ToLower().Split('?')[0]);
+            uri = new Uri(uri.ToString().Replace("www.", "").Replace(".html", "").ToLower().Split('?')[0].Split('#')[0]);
 
             var govsiRegex = new Regex(@"https?:\/\/[^\/]+gov\.si");
             if (!govsiRegex.IsMatch(uri.ToString())) return null;

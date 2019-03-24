@@ -1,7 +1,9 @@
 ﻿using Louw.SitemapParser;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.DependencyInjection;
 using RobotsTxt;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,12 +47,14 @@ namespace WebCrawler.Crawling
                         }
                     }
 
-                    await dbContext.Site.AddAsync(new Site()
+                    EntityEntry<Site> entityEntry = await dbContext.Site.AddAsync(new Site()
                     {
                         Domain = domain,
                         RobotsContent = robotsContent,
                         SitemapContent = sitemapContent
                     });
+                    site = entityEntry.Entity;
+                    Log.Information("Site from entity: {0} {1}", site.Domain, site.Id);
                     await dbContext.SaveChangesAsync();
 
                     if(sitemapContent != null)
@@ -64,7 +68,7 @@ namespace WebCrawler.Crawling
                     }
                 }
                 scope.Dispose();
-
+                page.SiteId = site.Id;
                 return page;
             });
         }

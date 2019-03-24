@@ -24,7 +24,8 @@ namespace WebCrawler.Crawling
                 var scope = scopeFactory.CreateScope();
                 var dbContext = (DbContext)scope.ServiceProvider.GetService(typeof(DbContext));
                 page.PageTypeCode = "HTML";
-                page.SiteId = dbContext.Site.Where(s => s.Domain == page.Domain).FirstOrDefault()?.Id;
+                // page.SiteId is moved to SiteLoader
+                // page.SiteId = dbContext.Site.Where(s => s.Domain == page.Domain).FirstOrDefault()?.Id;
                 dbContext.Page.Update(page);
                 await dbContext.SaveChangesAsync();
                 scope.Dispose();

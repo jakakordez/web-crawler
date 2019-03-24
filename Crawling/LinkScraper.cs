@@ -39,6 +39,7 @@ namespace WebCrawler.Crawling
 
                 foreach (var url in list)
                 {
+                    if (url == null) continue;
                     try
                     {
                         var httpRegex = new Regex(@"https?:\/\/");
