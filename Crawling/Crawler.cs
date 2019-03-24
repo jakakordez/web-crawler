@@ -13,6 +13,7 @@ namespace WebCrawler.Crawling
 {
     public static partial class Crawler
     {
+        public static readonly String CrawlerName = "WIER_agent";
 
         public static async Task StartCrawler(IServiceScopeFactory scopeFactory)
         {

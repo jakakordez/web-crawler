@@ -25,12 +25,13 @@ namespace WebCrawler.Crawling
             var r = browserPool.TryDequeue(out ChromeDriver browser);
             if (r) return browser;
 
-            var service = ChromeDriverService.CreateDefaultService(Environment.CurrentDirectory + @"\bin\Debug\netcoreapp2.1", "chromedriver.exe");
+            var service = ChromeDriverService.CreateDefaultService(Environment.CurrentDirectory + @"\bin\Debug\netcoreapp2.2", "chromedriver.exe");
             var chromeOptions = new ChromeOptions();
 
             // Disable images
             chromeOptions.AddUserProfilePreference("profile.default_content_setting_values.images", 2);
             chromeOptions.AddArguments("headless");
+            chromeOptions.AddArgument("--user-agent=" + Crawler.CrawlerName);
             chromeOptions.SetLoggingPreference("performance", LogLevel.All);
 
             return new ChromeDriver(service, chromeOptions);

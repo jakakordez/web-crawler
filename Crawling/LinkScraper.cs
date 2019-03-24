@@ -12,6 +12,7 @@ using AngleSharp.Html.Dom;
 using Serilog;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.RegularExpressions;
+using RobotsTxt;
 
 namespace WebCrawler.Crawling
 {
@@ -32,16 +33,28 @@ namespace WebCrawler.Crawling
 
                 var scope = scopeFactory.CreateScope();
                 var dbContext = scope.ServiceProvider.GetService<DbContext>();
+                var site = dbContext.Site.Where(d => d.Id == page.SiteId).FirstOrDefault();
+                // Log.Information("Site: {0} for page: {1}", site.Domain, page.Url);
+                var r = Robots.Load(site.RobotsContent);
+
                 foreach (var url in list)
                 {
                     try
                     {
                         var httpRegex = new Regex(@"https?:\/\/");
+                        var absoluteUrl = url;
                         if (!httpRegex.IsMatch(url))
                         {
-                            await Crawler.PostPage(new Uri(page.Url+url), dbContext, frontier);
+                            absoluteUrl = page.Url + url;
                         }
-                        else await Crawler.PostPage(new Uri(url), dbContext, frontier);
+                        if (r.IsPathAllowed(Crawler.CrawlerName, absoluteUrl))
+                        {
+                            await Crawler.PostPage(new Uri(absoluteUrl), dbContext, frontier);
+                        }
+                        else
+                        {
+                            Log.Information("Url: {0} is not allowed", absoluteUrl);
+                        }
                     }
                     catch { }
                 }
