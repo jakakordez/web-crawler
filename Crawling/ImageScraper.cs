@@ -18,6 +18,10 @@ namespace WebCrawler.Crawling
         {
             return new TransformBlock<Page, Image[]>(async page =>
             {
+                // If page is not html
+                if (page.document == null)
+                    return new Image[0];
+
                 var imgs = page.document.QuerySelectorAll("img");
                 // TODO: relative urls
                 Log.Information("Image scraper found {0} images", imgs.Length);
@@ -30,6 +34,7 @@ namespace WebCrawler.Crawling
                     Image image = new Image();
                     image.PageId = page.Id;
                     image.Filename = src;
+                    image.AccessedTime = DateTime.Now;
                     await dbContext.Image.AddAsync(image);
                     images.Add(image);
                 }

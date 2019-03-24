@@ -20,8 +20,8 @@ namespace WebCrawler.Crawling
         {
             var frontier = Frontier.GetBlock();
             var siteLoader = SiteLoader.GetBlock(scopeFactory, frontier);
-            var pageLoader = PageLoader.GetBlock();
-            var pageParser = PageParser.GetBlock(scopeFactory);
+            var pageLoader = PageLoader.GetBlock(scopeFactory);
+            var pageParser = PageParser.GetBlock();
             var linkScraper = LinkScraper.GetBlock(scopeFactory, frontier);
             var imageScraper = ImageScraper.GetBlock(scopeFactory);
             var imageLoader = ImageLoader.GetBlock(scopeFactory);
@@ -40,6 +40,7 @@ namespace WebCrawler.Crawling
 
             var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetService<DbContext>();
+            await PostPage(new Uri("http://evem.gov.si/info/data/user_upload/izjava_lastnika_objekta.doc"), dbContext, frontier);
             await PostPage(new Uri("http://evem.gov.si"), dbContext, frontier);
             await PostPage(new Uri("http://e-uprava.gov.si"), dbContext, frontier);
             await PostPage(new Uri("http://podatki.gov.si"), dbContext, frontier);
@@ -60,7 +61,8 @@ namespace WebCrawler.Crawling
             {
                 page = new Page()
                 {
-                    Url = uri.ToString()
+                    Url = uri.ToString(),
+                    PageTypeCode = "FRONTIER"
                 };
                 try
                 {

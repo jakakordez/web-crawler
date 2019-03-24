@@ -15,24 +15,17 @@ namespace WebCrawler.Crawling
 {
     public class PageParser
     {
-        public static TransformBlock<Page, Page> GetBlock(IServiceScopeFactory scopeFactory)
+        public static TransformBlock<Page, Page> GetBlock()
         {
             return new TransformBlock<Page, Page>(async page =>
             {
-                Log.Information("Site parser");
-
-                var scope = scopeFactory.CreateScope();
-                var dbContext = (DbContext)scope.ServiceProvider.GetService(typeof(DbContext));
-                page.PageTypeCode = "HTML";
-                // page.SiteId is moved to SiteLoader
-                // page.SiteId = dbContext.Site.Where(s => s.Domain == page.Domain).FirstOrDefault()?.Id;
-                dbContext.Page.Update(page);
-                await dbContext.SaveChangesAsync();
-                scope.Dispose();
-
-                var parser = new HtmlParser();
-                var doc = await parser.ParseDocumentAsync(page.HtmlContent);
-                page.document = doc;
+                Log.Information("Page parser {0}", page.Url);
+                if (page.PageTypeCode == "HTML")
+                {
+                    var parser = new HtmlParser();
+                    var doc = await parser.ParseDocumentAsync(page.HtmlContent);
+                    page.document = doc;
+                }
                 return page;
             });
         }

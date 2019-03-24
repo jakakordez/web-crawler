@@ -22,6 +22,11 @@ namespace WebCrawler.Crawling
         {
             return new ActionBlock<Page>(async page =>
             {
+                Log.Information("Link scraper {0}", page.Url);
+                // If page is not html
+                if (page.document == null)
+                    return;
+
                 var redirectRegex = new Regex("(?:document\\.location|location\\.href)\\s?=\\s?(?:'|\")([^'\"])+(?:'|\")");
                 var redirects = redirectRegex.Matches(page.HtmlContent).Select(m => m.Groups[1].Value);
 
