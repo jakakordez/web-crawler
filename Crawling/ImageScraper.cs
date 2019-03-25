@@ -31,6 +31,7 @@ namespace WebCrawler.Crawling
                 foreach (var img in imgs)
                 {
                     var src = img.GetAttribute("src");
+                    if (src.StartsWith("data:image/")) continue;
                     Image image = new Image();
                     image.PageId = page.Id;
                     image.Filename = src;
