@@ -18,6 +18,8 @@ namespace WebCrawler.Crawling
         {
             return new TransformBlock<Page, Image[]>(async page =>
             {
+                if (page == null) return null;
+
                 // If page is not html
                 if (page.document == null)
                     return new Image[0];

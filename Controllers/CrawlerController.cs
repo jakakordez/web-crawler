@@ -22,15 +22,15 @@ namespace WebCrawler.Controllers
             public int linkScraper;
             public int imageLoader;
         }
-
+        
         [HttpGet]
         public ActionResult Get()
         {
             return new JsonResult(new CrawlerStatus()
             {
                 frontier = Crawler.frontier.Count,
-                siteLoader = Crawler.siteLoader.InputCount,
                 pageLoader = Crawler.pageLoader.InputCount,
+                siteLoader = Crawler.siteLoader.InputCount,
                 pageParser = Crawler.pageParser.InputCount,
                 imageScraper = Crawler.imageScraper.InputCount,
                 linkScraper = Crawler.linkScraper.InputCount,

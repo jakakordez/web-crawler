@@ -20,55 +20,64 @@ namespace WebCrawler.Crawling
         public static TransformBlock<Page, Page> GetBlock(IServiceScopeFactory scopeFactory, BufferBlock<Page> frontier)
         {
             return new TransformBlock<Page, Page>(async page => {
-                var domainRegex = new Regex(@"https?:\/\/(.+?)\/");
-                var domain = domainRegex.Match(page.Url.ToString()).Groups[1].Value;
+                if (page == null) return null;
 
-                var scope = scopeFactory.CreateScope();
-                var dbContext = (Models.DbContext)scope.ServiceProvider.GetService(typeof(Models.DbContext));
-                var site = dbContext.Site.Where(s => s.Domain == domain).FirstOrDefault();
-                if(site == null)
+                try
                 {
-                    var client = new HttpClient();
+                    var domainRegex = new Regex(@"https?:\/\/(.+?)\/");
+                    var domain = domainRegex.Match(page.Url.ToString()).Groups[1].Value;
 
-                    var response = await client.GetAsync("http://"+domain+"/robots.txt");
-                    string robotsContent = null, sitemapContent = null;
-                    if (response.IsSuccessStatusCode)
+                    var scope = scopeFactory.CreateScope();
+                    var dbContext = (Models.DbContext)scope.ServiceProvider.GetService(typeof(Models.DbContext));
+                    var site = dbContext.Site.Where(s => s.Domain == domain).FirstOrDefault();
+                    if (site == null)
                     {
-                        robotsContent = await response.Content.ReadAsStringAsync();
-                        var r = Robots.Load(robotsContent);
+                        var client = new HttpClient();
 
-                        if (r.Sitemaps.Count > 0)
+                        var response = await client.GetAsync("http://" + domain + "/robots.txt");
+                        string robotsContent = null, sitemapContent = null;
+                        if (response.IsSuccessStatusCode)
                         {
-                            response = await client.GetAsync(r.Sitemaps[0].Url);
-                            if (response.IsSuccessStatusCode)
+                            robotsContent = await response.Content.ReadAsStringAsync();
+                            var r = Robots.Load(robotsContent);
+
+                            if (r.Sitemaps.Count > 0)
                             {
-                                sitemapContent = await response.Content.ReadAsStringAsync();
+                                response = await client.GetAsync(r.Sitemaps[0].Url);
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    sitemapContent = await response.Content.ReadAsStringAsync();
+                                }
+                            }
+                        }
+
+                        EntityEntry<Site> entityEntry = await dbContext.Site.AddAsync(new Site()
+                        {
+                            Domain = domain,
+                            RobotsContent = robotsContent,
+                            SitemapContent = sitemapContent
+                        });
+                        site = entityEntry.Entity;
+                        Log.Information("Site from entity: {0} {1}", site.Domain, site.Id);
+                        await dbContext.SaveChangesAsync();
+
+                        if (sitemapContent != null)
+                        {
+                            var sitemap = new SitemapParser().Parse(sitemapContent);
+
+                            foreach (var item in sitemap.Items)
+                            {
+                                await Crawler.PostPage(item.Location, dbContext, frontier);
                             }
                         }
                     }
-
-                    EntityEntry<Site> entityEntry = await dbContext.Site.AddAsync(new Site()
-                    {
-                        Domain = domain,
-                        RobotsContent = robotsContent,
-                        SitemapContent = sitemapContent
-                    });
-                    site = entityEntry.Entity;
-                    Log.Information("Site from entity: {0} {1}", site.Domain, site.Id);
-                    await dbContext.SaveChangesAsync();
-
-                    if(sitemapContent != null)
-                    {
-                        var sitemap = new SitemapParser().Parse(sitemapContent);
-
-                        foreach (var item in sitemap.Items)
-                        {
-                            await Crawler.PostPage(item.Location, dbContext, frontier);
-                        }
-                    }
+                    scope.Dispose();
+                    page.SiteId = site.Id;
                 }
-                scope.Dispose();
-                page.SiteId = site.Id;
+                catch (Exception e)
+                {
+                    Log.Error(e, "Site loader exception");
+                }
                 return page;
             });
         }

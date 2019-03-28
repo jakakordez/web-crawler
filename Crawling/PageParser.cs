@@ -19,6 +19,8 @@ namespace WebCrawler.Crawling
         {
             return new TransformBlock<Page, Page>(async page =>
             {
+                if (page == null) return null;
+
                 Log.Information("Page parser {0}", page.Url);
                 if (page.PageTypeCode == "HTML")
                 {

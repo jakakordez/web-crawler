@@ -22,6 +22,8 @@ namespace WebCrawler.Crawling
         {
             return new ActionBlock<Page>(async page =>
             {
+                if (page == null) return;
+
                 Log.Information("Link scraper {0}", page.Url);
                 // If page is not html
                 if (page.document == null)

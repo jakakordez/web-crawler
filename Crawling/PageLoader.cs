@@ -44,6 +44,8 @@ namespace WebCrawler.Crawling
         {
             return new TransformBlock<Page, Page>(async page =>
             {
+                if (page == null) return null;
+
                 Log.Information("Page loader {0}", page.Url);
                 ChromeDriver browser = null;
 

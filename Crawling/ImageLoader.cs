@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +16,10 @@ namespace WebCrawler.Crawling
         {
             return new ActionBlock<Image>(async i =>
             {
-                try { 
+                if (i == null) return;
+
+                try
+                { 
                     HttpClient client = new HttpClient();
                     var res = await client.GetAsync(i.Filename);
                     i.Data = await res.Content.ReadAsByteArrayAsync();
@@ -28,7 +32,9 @@ namespace WebCrawler.Crawling
                     await dbContext.SaveChangesAsync();
                     scope.Dispose();
                 }
-                catch { }
+                catch (Exception e){
+                    Log.Error(e, "Image loader exception");
+                }
             });
         }
     }
