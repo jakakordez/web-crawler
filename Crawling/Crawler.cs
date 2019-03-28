@@ -16,15 +16,21 @@ namespace WebCrawler.Crawling
     {
         public static readonly String CrawlerName = "WIER_agent";
 
+        public static BufferBlock<Page> frontier;
+        public static TransformBlock<Page, Page> siteLoader, pageLoader, pageParser;
+        public static TransformBlock<Page, Image[]> imageScraper;
+        public static ActionBlock<Page> linkScraper;
+        public static ActionBlock<Image> imageLoader;
+
         public static async Task StartCrawler(IServiceScopeFactory scopeFactory)
         {
-            var frontier = Frontier.GetBlock();
-            var siteLoader = SiteLoader.GetBlock(scopeFactory, frontier);
-            var pageLoader = PageLoader.GetBlock(scopeFactory);
-            var pageParser = PageParser.GetBlock();
-            var linkScraper = LinkScraper.GetBlock(scopeFactory, frontier);
-            var imageScraper = ImageScraper.GetBlock(scopeFactory);
-            var imageLoader = ImageLoader.GetBlock(scopeFactory);
+            frontier = Frontier.GetBlock();
+            siteLoader = SiteLoader.GetBlock(scopeFactory, frontier);
+            pageLoader = PageLoader.GetBlock(scopeFactory);
+            pageParser = PageParser.GetBlock();
+            linkScraper = LinkScraper.GetBlock(scopeFactory, frontier);
+            imageScraper = ImageScraper.GetBlock(scopeFactory);
+            imageLoader = ImageLoader.GetBlock(scopeFactory);
             var domBroadcast = new BroadcastBlock<Page>(d => d,
                 new DataflowBlockOptions());
             var imageSelect = CreateSelectManyBlock<Image>();

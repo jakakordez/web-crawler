@@ -100,6 +100,9 @@ namespace WebCrawler.Crawling
                 }
 
                 return page;
+            }, new ExecutionDataflowBlockOptions()
+            {
+                MaxDegreeOfParallelism = 4
             });
         }
     }
