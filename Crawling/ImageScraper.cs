@@ -5,6 +5,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using WebCrawler.Models;
@@ -34,9 +35,17 @@ namespace WebCrawler.Crawling
                 {
                     var src = img.GetAttribute("src");
                     if (src.StartsWith("data:image/")) continue;
+
+                    var httpRegex = new Regex(@"https?:\/\/");
+                    var absoluteUrl = src;
+                    if (!httpRegex.IsMatch(src))
+                    {
+                        absoluteUrl = page.Url + src;
+                    }
+
                     Image image = new Image();
                     image.PageId = page.Id;
-                    image.Filename = src;
+                    image.Filename = absoluteUrl;
                     image.AccessedTime = DateTime.Now;
                     await dbContext.Image.AddAsync(image);
                     images.Add(image);

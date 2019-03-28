@@ -34,9 +34,14 @@ namespace WebCrawler.Crawling
                     {
                         var client = new HttpClient();
 
-                        var response = await client.GetAsync("http://" + domain + "/robots.txt");
+                        HttpResponseMessage response = null;
+                        try
+                        {
+                            response = await client.GetAsync("http://" + domain + "/robots.txt");
+                        }
+                        catch { }
                         string robotsContent = null, sitemapContent = null;
-                        if (response.IsSuccessStatusCode)
+                        if (response?.IsSuccessStatusCode ?? false)
                         {
                             robotsContent = await response.Content.ReadAsStringAsync();
                             var r = Robots.Load(robotsContent);
