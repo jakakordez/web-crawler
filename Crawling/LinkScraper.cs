@@ -57,7 +57,7 @@ namespace WebCrawler.Crawling
                         }
                         if (r.IsPathAllowed(Crawler.CrawlerName, absoluteUrl))
                         {
-                            await Crawler.PostPage(new Uri(absoluteUrl), dbContext, frontier);
+                            await Crawler.PostPage(new Uri(absoluteUrl), dbContext, frontier, page.Id);
                         }
                         else
                         {

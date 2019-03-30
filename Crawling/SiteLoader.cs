@@ -72,7 +72,7 @@ namespace WebCrawler.Crawling
 
                             foreach (var item in sitemap.Items)
                             {
-                                await Crawler.PostPage(item.Location, dbContext, frontier);
+                                await Crawler.PostPage(item.Location, dbContext, frontier, null);
                             }
                         }
                     }

@@ -46,15 +46,15 @@ namespace WebCrawler.Crawling
 
             var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetService<DbContext>();
-            await PostPage(new Uri("http://evem.gov.si/info/data/user_upload/izjava_lastnika_objekta.doc"), dbContext, frontier);
-            await PostPage(new Uri("http://evem.gov.si"), dbContext, frontier);
-            await PostPage(new Uri("http://e-uprava.gov.si"), dbContext, frontier);
-            await PostPage(new Uri("http://podatki.gov.si"), dbContext, frontier);
-            await PostPage(new Uri("http://e-prostor.gov.si"), dbContext, frontier);
+            await PostPage(new Uri("http://evem.gov.si/info/data/user_upload/izjava_lastnika_objekta.doc"), dbContext, frontier, null);
+            await PostPage(new Uri("http://evem.gov.si"), dbContext, frontier, null);
+            await PostPage(new Uri("http://e-uprava.gov.si"), dbContext, frontier, null);
+            await PostPage(new Uri("http://podatki.gov.si"), dbContext, frontier, null);
+            await PostPage(new Uri("http://e-prostor.gov.si"), dbContext, frontier, null);
             scope.Dispose();
         }
 
-        public static async Task<Page> PostPage(Uri uri, DbContext dbContext, BufferBlock<Page> frontier)
+        public static async Task<Page> PostPage(Uri uri, DbContext dbContext, BufferBlock<Page> frontier, int? previous_page_id)
         {
             uri = new Uri(uri.ToString().Replace("www.", "").Replace(".html", "").ToLower().Split('?')[0].Split('#')[0]);
 
@@ -74,6 +74,15 @@ namespace WebCrawler.Crawling
                 {
                     await dbContext.Page.AddAsync(page);
                     await dbContext.SaveChangesAsync();
+                    if (previous_page_id != null)
+                    {
+                        await dbContext.Link.AddAsync(new Link
+                        {
+                            FromPage = (int)previous_page_id,
+                            ToPage = page.Id
+                        });
+                        await dbContext.SaveChangesAsync();
+                    }
                     frontier.Post(page);
                 }
                 catch
