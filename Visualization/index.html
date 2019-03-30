@@ -1,0 +1,64 @@
+<html>
+<head>
+<style type="text/css">
+  #container {
+    height: 100vh;
+    width: 100vw;
+    background-color: #202020;
+    margin: auto;
+  }
+</style>
+</head>
+<body>
+<div id="container"></div>
+<script src="js/sigma.min.js"></script>
+<script src="js/sigma.parsers.json.min.js"></script>
+<script src="js/sigma.layout.forceAtlas2.min.js"></script>
+<script src="js/worker.js"></script>
+<script src="js/supervisor.js"></script>
+<script>
+  var s = new sigma({
+    container: 'container',
+    settings: {
+      defaultNodeColor: '#7CFC00',
+      defaultEdgeColor: '#006400',
+      defaultLabelColor: '#FFFFFF',
+      edgeColor: "default"
+    }
+  });
+
+  sigma.parsers.json(
+    'data.json',
+    s,
+    function () {
+    var i,
+    nodes = s.graph.nodes();
+    len = nodes.length;
+    // providing x,y,size and color properties to node
+    for(i=0;i<len;i++){
+      nodes[i].x = Math.random();
+      nodes[i].y = Math.random();
+      nodes[i].size = s.graph.degree(nodes[i].id);
+    }
+    s.refresh();
+    var fa = s.configForceAtlas2({
+      worker: true,
+      autoStop: true,
+      background: true,
+      scaleRatio: 30,
+      gravity: 3
+    });
+
+    // Bind the events:
+    fa.bind('start stop', function(e) {
+    console.log(e.type);
+    });
+
+    s.startForceAtlas2();
+
+    }
+  );
+
+</script>
+</body>
+</html>
