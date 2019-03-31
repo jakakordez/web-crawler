@@ -63,8 +63,8 @@ namespace WebCrawler.Crawling
                             SitemapContent = sitemapContent
                         });
                         site = entityEntry.Entity;
-                        Log.Information("Site from entity: {0} {1}", site.Domain, site.Id);
                         await dbContext.SaveChangesAsync();
+                        Log.Information("Site from entity: {0} {Id}", site.Domain, site.Id);
 
                         if (sitemapContent != null)
                         {

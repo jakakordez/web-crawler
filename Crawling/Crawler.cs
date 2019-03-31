@@ -17,7 +17,7 @@ namespace WebCrawler.Crawling
         public static readonly String CrawlerName = "WIER_agent";
 
         public static BufferBlock<Page> frontier;
-        public static TransformBlock<Page, Page> siteLoader, pageLoader, pageParser;
+        public static TransformBlock<Page, Page> siteLoader, pageLoader, checkIfDuplicate, pageParser;
         public static TransformBlock<Page, Image[]> imageScraper;
         public static ActionBlock<Page> linkScraper;
         public static ActionBlock<Image> imageLoader;
@@ -27,6 +27,7 @@ namespace WebCrawler.Crawling
             frontier = Frontier.GetBlock();
             siteLoader = SiteLoader.GetBlock(scopeFactory, frontier);
             pageLoader = PageLoader.GetBlock(scopeFactory);
+            checkIfDuplicate = CheckIfDuplicate.GetBlock(scopeFactory);
             pageParser = PageParser.GetBlock();
             linkScraper = LinkScraper.GetBlock(scopeFactory, frontier);
             imageScraper = ImageScraper.GetBlock(scopeFactory);
@@ -37,7 +38,8 @@ namespace WebCrawler.Crawling
 
             frontier.LinkTo(siteLoader, new DataflowLinkOptions());
             siteLoader.LinkTo(pageLoader, new DataflowLinkOptions());
-            pageLoader.LinkTo(pageParser, new DataflowLinkOptions());
+            pageLoader.LinkTo(checkIfDuplicate, new DataflowLinkOptions());
+            checkIfDuplicate.LinkTo(pageParser, new DataflowLinkOptions());
             pageParser.LinkTo(domBroadcast, new DataflowLinkOptions());
             domBroadcast.LinkTo(linkScraper, new DataflowLinkOptions());
             domBroadcast.LinkTo(imageScraper, new DataflowLinkOptions());
@@ -74,7 +76,21 @@ namespace WebCrawler.Crawling
                 {
                     await dbContext.Page.AddAsync(page);
                     await dbContext.SaveChangesAsync();
-                    if (previous_page_id != null)
+                    frontier.Post(page);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Post page error");
+                    page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+                }
+            }
+            
+            try
+            {
+                if (previous_page_id != null)
+                {
+                    var link = dbContext.Link.Where(l => l.FromPage == (int)previous_page_id && l.ToPage == page.Id).FirstOrDefault();
+                    if (link == null)
                     {
                         await dbContext.Link.AddAsync(new Link
                         {
@@ -83,12 +99,11 @@ namespace WebCrawler.Crawling
                         });
                         await dbContext.SaveChangesAsync();
                     }
-                    frontier.Post(page);
                 }
-                catch
-                {
-                    page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
-                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Post page link error");
             }
 
             return page;

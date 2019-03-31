@@ -66,12 +66,15 @@ namespace WebCrawler.Crawling
                             Data = await res.Content.ReadAsByteArrayAsync(),
                             DataTypeCode = pageType
                         };
-                        var ContentType = res.Content.Headers.ContentType.MediaType;
-
-                        await dbContext.PageData.AddAsync(pageData);
-
+                        // var ContentType = res.Content.Headers.ContentType.MediaType;
+                        
                         page.PageTypeCode = "BINARY";
                         page.HttpStatusCode = (int)res.StatusCode;
+
+                        await dbContext.PageData.AddAsync(pageData);
+                        dbContext.Page.Update(page);
+                        // await dbContext.SaveChangesAsync();
+                        await dbContext.SaveChangesAsync();
                     }
                     else
                     {
@@ -95,10 +98,17 @@ namespace WebCrawler.Crawling
                 }
                 finally
                 {
-                    if(browser != null) BrowserPool.Return(browser);
-                    dbContext.Page.Update(page);
-                    await dbContext.SaveChangesAsync();
-                    scope.Dispose();
+                    try
+                    {
+                        if (browser != null) BrowserPool.Return(browser);
+                        dbContext.Page.Update(page);
+                        await dbContext.SaveChangesAsync();
+                        scope.Dispose();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e, "Page loader update error");
+                    }
                 }
 
                 return page;
