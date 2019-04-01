@@ -60,10 +60,11 @@ namespace WebCrawler.Crawling
 
                         HttpClient client = new HttpClient();
                         var res = await client.GetAsync(page.Url);
+                        var data = await res.Content.ReadAsByteArrayAsync();
                         var pageData = new PageData
                         {
                             PageId = page.Id,
-                            Data = await res.Content.ReadAsByteArrayAsync(),
+                            Data = data,
                             DataTypeCode = pageType
                         };
                         // var ContentType = res.Content.Headers.ContentType.MediaType;
@@ -72,9 +73,13 @@ namespace WebCrawler.Crawling
                         page.HttpStatusCode = (int)res.StatusCode;
 
                         await dbContext.PageData.AddAsync(pageData);
+                        await dbContext.SaveChangesAsync();
+
                         dbContext.Page.Update(page);
                         // await dbContext.SaveChangesAsync();
-                        await dbContext.SaveChangesAsync();
+                        dbContext.SaveChanges();
+                        // return null because we dont need page parser, link and image scraper...
+                        return null;
                     }
                     else
                     {
@@ -101,8 +106,8 @@ namespace WebCrawler.Crawling
                     try
                     {
                         if (browser != null) BrowserPool.Return(browser);
-                        dbContext.Page.Update(page);
-                        await dbContext.SaveChangesAsync();
+                        // dbContext.Page.Update(page);
+                        // await dbContext.SaveChangesAsync();
                         scope.Dispose();
                     }
                     catch (Exception e)

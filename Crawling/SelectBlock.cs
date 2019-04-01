@@ -17,9 +17,12 @@ namespace WebCrawler.Crawling
             // The target part receives data and adds them to the queue.
             var target = new ActionBlock<T[]>(items =>
             {
-                foreach (var item in items)
+                if (items != null)
                 {
-                    source.Post(item);
+                    foreach (var item in items)
+                    {
+                        source.Post(item);
+                    }
                 }
             });
 

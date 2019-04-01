@@ -24,29 +24,25 @@ namespace WebCrawler.Crawling
                 var dbContext = (DbContext)scope.ServiceProvider.GetService(typeof(DbContext));
                 try
                 {
-                    var duplicate = dbContext.Page.Where(p => p.HtmlContent == page.HtmlContent && p.Id != page.Id).FirstOrDefault();
-                    if (duplicate == null)
+                    var duplicate = dbContext.Page.Where(p => p.HtmlContent == page.HtmlContent && p.Id != page.Id && string.Compare(p.PageTypeCode, "HTML")==0).FirstOrDefault();
+                    if (duplicate != null)
                     {
-                        // dbContext.Page.Update(page);
-                        // await dbContext.SaveChangesAsync();
-                        // scope.Dispose();
-                        return page;
+                        Log.Information("Duplicate found! 1. URL: {0}, 2. URL: {1}", duplicate.Url, page.Url);
+                        page.HtmlContent = null;
+                        page.PageTypeCode = "DUPLICATE";
+
+                        await dbContext.Link.AddAsync(new Link
+                        {
+                            FromPage = duplicate.Id,
+                            ToPage = page.Id
+                        });
                     }
 
-                    Log.Information("Duplicate found! 1. URL: {0}, 2. URL: {1}", duplicate.Url, page.Url);
-                    page.HtmlContent = null;
-                    page.PageTypeCode = "DUPLICATE";
-
                     dbContext.Page.Update(page);
-                    await dbContext.Link.AddAsync(new Link
-                    {
-                        FromPage = duplicate.Id,
-                        ToPage = page.Id
-                    });
                     await dbContext.SaveChangesAsync();
                     scope.Dispose();
 
-                    return null;
+                    return duplicate == null ? page : null;
                 }
                 catch (Exception e)
                 {
