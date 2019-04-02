@@ -49,8 +49,7 @@ namespace WebCrawler.Crawling
                 Log.Information("Page loader {0}", page.Url);
                 ChromeDriver browser = null;
 
-                var scope = scopeFactory.CreateScope();
-                var dbContext = (DbContext)scope.ServiceProvider.GetService(typeof(DbContext));
+                
                 try
                 {
                     String pageType = GetPageType(page.Url);
@@ -74,11 +73,13 @@ namespace WebCrawler.Crawling
 
                         lock (Crawler.lockObj)
                         {
+                            var scope = scopeFactory.CreateScope();
+                            var dbContext = (DbContext)scope.ServiceProvider.GetService(typeof(DbContext));
                             dbContext.PageData.Add(pageData);
                             dbContext.Page.Update(page);
                             dbContext.SaveChanges();
+                            scope.Dispose();
                         }
-                        scope.Dispose();
 
                         // await dbContext.SaveChangesAsync();
                         // return null because we dont need page parser, link and image scraper...
@@ -89,11 +90,19 @@ namespace WebCrawler.Crawling
                         browser = BrowserPool.Get();
                         browser.Navigate().GoToUrl(page.Url);
                         var logs = browser.Manage().Logs.GetLog("performance");
-                        var responseCode = logs
-                            .Select(log => JObject.Parse(log.Message)["message"])
-                            .Where(o => o["method"]?.ToString() == "Network.responseReceived")
-                            .Select(o => o["params"]["response"]["status"])
-                            .First().ToString();
+                        string responseCode = "0";
+                        try
+                        {
+                            responseCode = logs
+                                .Select(log => JObject.Parse(log.Message)["message"])
+                                .Where(o => o["method"]?.ToString() == "Network.responseReceived")
+                                .Select(o => o["params"]["response"]["status"])
+                                .First().ToString();
+                        }
+                        catch
+                        {
+                            Log.Error("Unable to get response code");
+                        }
                         page.AccessedTime = DateTime.Now;
                         page.HtmlContent = browser.PageSource;
                         page.PageTypeCode = "HTML";
@@ -111,7 +120,7 @@ namespace WebCrawler.Crawling
                         if (browser != null) BrowserPool.Return(browser);
                         // dbContext.Page.Update(page);
                         // await dbContext.SaveChangesAsync();
-                        scope.Dispose();
+                        //scope.Dispose();
                     }
                     catch (Exception e)
                     {
@@ -122,7 +131,7 @@ namespace WebCrawler.Crawling
                 return page;
             }, new ExecutionDataflowBlockOptions()
             {
-                MaxDegreeOfParallelism = 4
+                MaxDegreeOfParallelism = 1
             });
         }
     }

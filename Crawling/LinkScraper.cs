@@ -38,35 +38,38 @@ namespace WebCrawler.Crawling
                 var list = links.ToList();
                 list.AddRange(redirects);
 
-                var scope = scopeFactory.CreateScope();
-                var dbContext = scope.ServiceProvider.GetService<DbContext>();
-                var site = dbContext.Site.Where(d => d.Id == page.SiteId).FirstOrDefault();
-                // Log.Information("Site: {0} for page: {1}", site.Domain, page.Url);
-                var r = Robots.Load(site.RobotsContent);
+                lock (Crawler.lockObj) { 
+                    var scope = scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetService<DbContext>();
+                    var site = dbContext.Site.Where(d => d.Id == page.SiteId).FirstOrDefault();
+                    // Log.Information("Site: {0} for page: {1}", site.Domain, page.Url);
+                    var r = Robots.Load(site.RobotsContent);
 
-                foreach (var url in list)
-                {
-                    if (url == null) continue;
-                    try
+                    foreach (var url in list)
                     {
-                        var httpRegex = new Regex(@"https?:\/\/");
-                        var absoluteUrl = url;
-                        if (!httpRegex.IsMatch(url))
+                        if (url == null) continue;
+                        try
                         {
-                            absoluteUrl = page.Url + url;
+                            var httpRegex = new Regex(@"https?:\/\/");
+                            var absoluteUrl = url;
+                            if (!httpRegex.IsMatch(url))
+                            {
+                                absoluteUrl = page.Url + url;
+                            }
+                            if (r.IsPathAllowed(Crawler.CrawlerName, absoluteUrl))
+                            {
+                                Crawler.PostPage(new Uri(absoluteUrl), dbContext, frontier, page.Id).Wait();
+                            }
+                            else
+                            {
+                                Log.Information("Url: {0} is not allowed", absoluteUrl);
+                            }
                         }
-                        if (r.IsPathAllowed(Crawler.CrawlerName, absoluteUrl))
-                        {
-                            await Crawler.PostPage(new Uri(absoluteUrl), dbContext, frontier, page.Id);
-                        }
-                        else
-                        {
-                            Log.Information("Url: {0} is not allowed", absoluteUrl);
-                        }
+                        catch { }
                     }
-                    catch { }
+                    scope.Dispose();
                 }
-                scope.Dispose();
+
             });
         }
     }

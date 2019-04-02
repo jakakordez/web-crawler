@@ -26,10 +26,7 @@ namespace WebCrawler.Crawling
                     return new Image[0];
 
                 var imgs = page.document.QuerySelectorAll("img");
-                // TODO: relative urls
                 Log.Information("Image scraper found {0} images", imgs.Length);
-                var scope = scopeFactory.CreateScope();
-                var dbContext = scope.ServiceProvider.GetService<Models.DbContext>();
                 var images = new List<Image>();
                 foreach (var img in imgs)
                 {
@@ -47,14 +44,19 @@ namespace WebCrawler.Crawling
                     image.PageId = page.Id;
                     image.Filename = absoluteUrl;
                     image.AccessedTime = DateTime.Now;
-                    await dbContext.Image.AddAsync(image);
                     images.Add(image);
                 }
                 lock (Crawler.lockObj)
                 {
+                    var scope = scopeFactory.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetService<Models.DbContext>();
+                    foreach (var img in images)
+                    {
+                        dbContext.Image.Add(img);
+                    }
                     dbContext.SaveChanges();
+                    scope.Dispose();
                 }
-                scope.Dispose();
                 return images.ToArray();
             });
         }

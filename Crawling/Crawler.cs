@@ -58,68 +58,57 @@ namespace WebCrawler.Crawling
 
         public static async Task<Page> PostPage(Uri uri, DbContext dbContext, BufferBlock<Page> frontier, int? previous_page_id)
         {
+            Page page;
             uri = new Uri(uri.ToString().Replace("www.", "").Replace(".html", "").ToLower().Split('?')[0].Split('#')[0]);
 
             var govsiRegex = new Regex(@"https?:\/\/[^\/]+gov\.si");
             if (!govsiRegex.IsMatch(uri.ToString())) return null;
-
-            Page page;
+                
             lock (Crawler.lockObj)
             {
-               page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
-            }
 
-            if(page == null)
-            {
-                page = new Page()
+                page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+
+                if (page == null)
                 {
-                    Url = uri.ToString(),
-                    PageTypeCode = "FRONTIER"
-                };
-                try
-                {
-                    lock (lockObj)
+                    page = new Page()
+                    {
+                        Url = uri.ToString(),
+                        PageTypeCode = "FRONTIER"
+                    };
+                    try
                     {
                         dbContext.Page.Add(page);
                         dbContext.SaveChanges();
+                        frontier.Post(page);
                     }
-                    frontier.Post(page);
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e, "Post page error");
-                    lock (Crawler.lockObj)
+                    catch (Exception e)
                     {
+                        Log.Error(e, "Post page error");
                         page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
                     }
                 }
-            }
-            
-            try
-            {
-                if (previous_page_id != null)
+
+                try
                 {
-                    lock (Crawler.lockObj)
+                    if (previous_page_id != null)
                     {
                         var link = dbContext.Link.Where(l => l.FromPage == previous_page_id && l.ToPage == page.Id).FirstOrDefault();
                         if (link == null)
                         {
-                            lock (lockObj)
+                            dbContext.Link.Add(new Link
                             {
-                                dbContext.Link.Add(new Link
-                                {
-                                    FromPage = (int)previous_page_id,
-                                    ToPage = page.Id
-                                });
-                                dbContext.SaveChanges();
-                            }
+                                FromPage = (int)previous_page_id,
+                                ToPage = page.Id
+                            });
+                            dbContext.SaveChanges();
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e, "Post page link error");
+                catch (Exception e)
+                {
+                    Log.Error(e, "Post page link error");
+                }
             }
 
             return page;
