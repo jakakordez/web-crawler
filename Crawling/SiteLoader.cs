@@ -29,7 +29,11 @@ namespace WebCrawler.Crawling
 
                     var scope = scopeFactory.CreateScope();
                     var dbContext = (Models.DbContext)scope.ServiceProvider.GetService(typeof(Models.DbContext));
-                    var site = dbContext.Site.Where(s => s.Domain == domain).FirstOrDefault();
+                    Site site;
+                    lock (Crawler.lockObj)
+                    {
+                        site = dbContext.Site.Where(s => s.Domain == domain).FirstOrDefault();
+                    }
                     if (site == null)
                     {
                         var client = new HttpClient();

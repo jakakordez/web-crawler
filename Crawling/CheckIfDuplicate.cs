@@ -22,9 +22,13 @@ namespace WebCrawler.Crawling
 
                 var scope = scopeFactory.CreateScope();
                 var dbContext = (DbContext)scope.ServiceProvider.GetService(typeof(DbContext));
+                Page duplicate;
                 try
                 {
-                    var duplicate = dbContext.Page.Where(p => p.HtmlContent == page.HtmlContent && p.Id != page.Id && string.Compare(p.PageTypeCode, "HTML")==0).FirstOrDefault();
+                    lock (Crawler.lockObj)
+                    {
+                        duplicate = dbContext.Page.Where(p => p.HtmlContent == page.HtmlContent && p.Id != page.Id && string.Compare(p.PageTypeCode, "HTML") == 0).FirstOrDefault();
+                    }
                     if (duplicate != null)
                     {
                         Log.Information("Duplicate found! 1. URL: {0}, 2. URL: {1}", duplicate.Url, page.Url);
@@ -33,10 +37,11 @@ namespace WebCrawler.Crawling
 
                         await dbContext.Link.AddAsync(new Link
                         {
-                            FromPage = duplicate.Id,
-                            ToPage = page.Id
+                            FromPage = page.Id,
+                            ToPage = duplicate.Id
                         });
                     }
+                    duplicate = null;
                     lock (Crawler.lockObj)
                     {
                         dbContext.Page.Update(page);

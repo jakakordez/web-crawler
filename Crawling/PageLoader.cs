@@ -78,6 +78,7 @@ namespace WebCrawler.Crawling
                             dbContext.Page.Update(page);
                             dbContext.SaveChanges();
                         }
+                        scope.Dispose();
 
                         // await dbContext.SaveChangesAsync();
                         // return null because we dont need page parser, link and image scraper...

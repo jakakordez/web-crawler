@@ -63,7 +63,11 @@ namespace WebCrawler.Crawling
             var govsiRegex = new Regex(@"https?:\/\/[^\/]+gov\.si");
             if (!govsiRegex.IsMatch(uri.ToString())) return null;
 
-            var page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+            Page page;
+            lock (Crawler.lockObj)
+            {
+               page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+            }
 
             if(page == null)
             {
@@ -84,7 +88,10 @@ namespace WebCrawler.Crawling
                 catch (Exception e)
                 {
                     Log.Error(e, "Post page error");
-                    page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+                    lock (Crawler.lockObj)
+                    {
+                        page = dbContext.Page.Where(d => d.Url == uri.ToString()).FirstOrDefault();
+                    }
                 }
             }
             
@@ -92,17 +99,20 @@ namespace WebCrawler.Crawling
             {
                 if (previous_page_id != null)
                 {
-                    var link = dbContext.Link.Where(l => l.FromPage == (int)previous_page_id && l.ToPage == page.Id).FirstOrDefault();
-                    if (link == null)
+                    lock (Crawler.lockObj)
                     {
-                        lock (lockObj)
+                        var link = dbContext.Link.Where(l => l.FromPage == previous_page_id && l.ToPage == page.Id).FirstOrDefault();
+                        if (link == null)
                         {
-                            dbContext.Link.Add(new Link
+                            lock (lockObj)
                             {
-                                FromPage = (int)previous_page_id,
-                                ToPage = page.Id
-                            });
-                            dbContext.SaveChanges();
+                                dbContext.Link.Add(new Link
+                                {
+                                    FromPage = (int)previous_page_id,
+                                    ToPage = page.Id
+                                });
+                                dbContext.SaveChanges();
+                            }
                         }
                     }
                 }
