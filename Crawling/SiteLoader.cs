@@ -56,14 +56,18 @@ namespace WebCrawler.Crawling
                             }
                         }
 
-                        EntityEntry<Site> entityEntry = await dbContext.Site.AddAsync(new Site()
+                        lock (Crawler.lockObj)
                         {
-                            Domain = domain,
-                            RobotsContent = robotsContent,
-                            SitemapContent = sitemapContent
-                        });
-                        site = entityEntry.Entity;
-                        await dbContext.SaveChangesAsync();
+                            EntityEntry<Site> entityEntry = dbContext.Site.Add(new Site()
+                            {
+                                Domain = domain,
+                                RobotsContent = robotsContent,
+                                SitemapContent = sitemapContent
+                            });
+                            site = entityEntry.Entity;
+                            dbContext.SaveChanges();
+                        }
+
                         Log.Information("Site from entity: {0} {Id}", site.Domain, site.Id);
 
                         if (sitemapContent != null)

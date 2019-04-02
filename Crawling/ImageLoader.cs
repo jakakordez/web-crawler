@@ -28,8 +28,11 @@ namespace WebCrawler.Crawling
 
                     var scope = scopeFactory.CreateScope();
                     var dbContext = scope.ServiceProvider.GetService<Models.DbContext>();
-                    dbContext.Image.Update(i);
-                    await dbContext.SaveChangesAsync();
+                    lock (Crawler.lockObj)
+                    {
+                        dbContext.Image.Update(i);
+                        dbContext.SaveChanges();
+                    }
                     scope.Dispose();
                 }
                 catch (Exception e){

@@ -37,9 +37,11 @@ namespace WebCrawler.Crawling
                             ToPage = page.Id
                         });
                     }
-
-                    dbContext.Page.Update(page);
-                    await dbContext.SaveChangesAsync();
+                    lock (Crawler.lockObj)
+                    {
+                        dbContext.Page.Update(page);
+                        dbContext.SaveChanges();
+                    }
                     scope.Dispose();
 
                     return duplicate == null ? page : null;

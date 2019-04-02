@@ -15,6 +15,7 @@ namespace WebCrawler.Crawling
     public static partial class Crawler
     {
         public static readonly String CrawlerName = "WIER_agent";
+        public static readonly object lockObj = new object();
 
         public static BufferBlock<Page> frontier;
         public static TransformBlock<Page, Page> siteLoader, pageLoader, checkIfDuplicate, pageParser;
@@ -48,7 +49,6 @@ namespace WebCrawler.Crawling
 
             var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetService<DbContext>();
-            await PostPage(new Uri("http://evem.gov.si/info/data/user_upload/izjava_lastnika_objekta.doc"), dbContext, frontier, null);
             await PostPage(new Uri("http://evem.gov.si"), dbContext, frontier, null);
             await PostPage(new Uri("http://e-uprava.gov.si"), dbContext, frontier, null);
             await PostPage(new Uri("http://podatki.gov.si"), dbContext, frontier, null);
@@ -74,8 +74,11 @@ namespace WebCrawler.Crawling
                 };
                 try
                 {
-                    await dbContext.Page.AddAsync(page);
-                    await dbContext.SaveChangesAsync();
+                    lock (lockObj)
+                    {
+                        dbContext.Page.Add(page);
+                        dbContext.SaveChanges();
+                    }
                     frontier.Post(page);
                 }
                 catch (Exception e)
@@ -92,12 +95,15 @@ namespace WebCrawler.Crawling
                     var link = dbContext.Link.Where(l => l.FromPage == (int)previous_page_id && l.ToPage == page.Id).FirstOrDefault();
                     if (link == null)
                     {
-                        await dbContext.Link.AddAsync(new Link
+                        lock (lockObj)
                         {
-                            FromPage = (int)previous_page_id,
-                            ToPage = page.Id
-                        });
-                        await dbContext.SaveChangesAsync();
+                            dbContext.Link.Add(new Link
+                            {
+                                FromPage = (int)previous_page_id,
+                                ToPage = page.Id
+                            });
+                            dbContext.SaveChanges();
+                        }
                     }
                 }
             }

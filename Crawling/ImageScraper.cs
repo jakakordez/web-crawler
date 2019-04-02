@@ -50,7 +50,10 @@ namespace WebCrawler.Crawling
                     await dbContext.Image.AddAsync(image);
                     images.Add(image);
                 }
-                await dbContext.SaveChangesAsync();
+                lock (Crawler.lockObj)
+                {
+                    dbContext.SaveChanges();
+                }
                 scope.Dispose();
                 return images.ToArray();
             });

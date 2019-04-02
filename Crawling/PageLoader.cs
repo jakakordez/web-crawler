@@ -56,7 +56,7 @@ namespace WebCrawler.Crawling
                     String pageType = GetPageType(page.Url);
                     if (pageType != null)
                     {
-                        Log.Information("Downloading pdf {0}", page.Url);
+                        Log.Information("Downloading binary {0}", page.Url);
 
                         HttpClient client = new HttpClient();
                         var res = await client.GetAsync(page.Url);
@@ -72,12 +72,14 @@ namespace WebCrawler.Crawling
                         page.PageTypeCode = "BINARY";
                         page.HttpStatusCode = (int)res.StatusCode;
 
-                        await dbContext.PageData.AddAsync(pageData);
-                        await dbContext.SaveChangesAsync();
+                        lock (Crawler.lockObj)
+                        {
+                            dbContext.PageData.Add(pageData);
+                            dbContext.Page.Update(page);
+                            dbContext.SaveChanges();
+                        }
 
-                        dbContext.Page.Update(page);
                         // await dbContext.SaveChangesAsync();
-                        dbContext.SaveChanges();
                         // return null because we dont need page parser, link and image scraper...
                         return null;
                     }
