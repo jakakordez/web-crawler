@@ -131,7 +131,7 @@ namespace WebCrawler.Crawling
                 return page;
             }, new ExecutionDataflowBlockOptions()
             {
-                MaxDegreeOfParallelism = 1
+                MaxDegreeOfParallelism = 5
             });
         }
     }
